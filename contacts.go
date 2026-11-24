@@ -17,21 +17,32 @@ import (
 type GetContactsInput struct {
 	_ string `url:"/v3/contacts"`
 
-	CreatedAfter  time.Time `query:"created_after"`
-	CreatedBefore time.Time `query:"created_before"`
-	Email         string    `query:"email"`
-	Include       []string  `query:"include"` // Comma-separated list of fields to include.
-	IncludeCount  bool      `query:"include_count"`
-	Limit         int       `query:"limit"`
-	Lists         []string  `query:"lists"` // Comma-separated list of list IDs.
-	OptoutBefore  time.Time `query:"optout_before"`
-	SegmentID     string    `query:"segment_id"`
-	SMSStatus     []string  `query:"sms_status"` // Comma-separated list of SMS statuses.
-	Status        string    `query:"status"`
-	Tags          []string  `query:"tags"` // Comma-separated list of tag IDs.
-	UpdatedAfter  time.Time `query:"updated_after"`
-	UpdatedBefore time.Time `query:"updated_before"`
+	CreatedAfter  time.Time          `query:"created_after"`
+	CreatedBefore time.Time          `query:"created_before"`
+	Email         string             `query:"email"`
+	Include       []ContactFieldName `query:"include"` // Comma-separated list of fields to include.
+	IncludeCount  bool               `query:"include_count"`
+	Limit         int                `query:"limit"`
+	Lists         []string           `query:"lists"` // Comma-separated list of list IDs.
+	OptoutBefore  time.Time          `query:"optout_before"`
+	SegmentID     string             `query:"segment_id"`
+	SMSStatus     []string           `query:"sms_status"` // Comma-separated list of SMS statuses.
+	Status        string             `query:"status"`
+	Tags          []string           `query:"tags"` // Comma-separated list of tag IDs.
+	UpdatedAfter  time.Time          `query:"updated_after"`
+	UpdatedBefore time.Time          `query:"updated_before"`
 }
+
+type ContactFieldName string
+
+const (
+	ContactFieldNameCustomFields    ContactFieldName = "custom_fields"
+	ContactFieldNameListMemberships ContactFieldName = "list_memberships"
+	ContactFieldNamePhoneNumbers    ContactFieldName = "phone_numbers"
+	ContactFieldNameStreetAddresses ContactFieldName = "street_addresses"
+	ContactFieldNameTaggings        ContactFieldName = "taggings"
+	ContactFieldNameNotes           ContactFieldName = "notes"
+)
 
 type GetContactsOutput struct {
 	HasLinks
@@ -112,7 +123,11 @@ func (c *Client) GetContacts(ctx context.Context, input GetContactsInput) (GetCo
 		queryParams.Add("email", input.Email)
 	}
 	if len(input.Include) > 0 {
-		queryParams.Add("include", strings.Join(input.Include, ","))
+		var stringValues []string
+		for _, value := range input.Include {
+			stringValues = append(stringValues, string(value))
+		}
+		queryParams.Add("include", strings.Join(stringValues, ","))
 	}
 	if input.IncludeCount {
 		queryParams.Add("include_count", "true")
