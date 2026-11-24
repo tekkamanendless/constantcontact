@@ -27,7 +27,7 @@ type GetContactsInput struct {
 	OptoutBefore  time.Time          `query:"optout_before"`
 	SegmentID     string             `query:"segment_id"`
 	SMSStatus     []string           `query:"sms_status"` // Comma-separated list of SMS statuses.
-	Status        string             `query:"status"`
+	Status        ContactStatus      `query:"status"`
 	Tags          []string           `query:"tags"` // Comma-separated list of tag IDs.
 	UpdatedAfter  time.Time          `query:"updated_after"`
 	UpdatedBefore time.Time          `query:"updated_before"`
@@ -42,6 +42,18 @@ const (
 	ContactFieldNameStreetAddresses ContactFieldName = "street_addresses"
 	ContactFieldNameTaggings        ContactFieldName = "taggings"
 	ContactFieldNameNotes           ContactFieldName = "notes"
+)
+
+type ContactStatus string
+
+const (
+	ContactStatusAll                 ContactStatus = "all"
+	ContactStatusActive              ContactStatus = "active"
+	ContactStatusDeleted             ContactStatus = "deleted"
+	ContactStatusNotSet              ContactStatus = "not_set"
+	ContactStatusPendingConfirmation ContactStatus = "pending_confirmation"
+	ContactStatusTempHold            ContactStatus = "temp_hold"
+	ContactStatusUnsubscribed        ContactStatus = "unsubscribed"
 )
 
 type GetContactsOutput struct {
@@ -148,7 +160,7 @@ func (c *Client) GetContacts(ctx context.Context, input GetContactsInput) (GetCo
 		queryParams.Add("sms_status", strings.Join(input.SMSStatus, ","))
 	}
 	if input.Status != "" {
-		queryParams.Add("status", input.Status)
+		queryParams.Add("status", string(input.Status))
 	}
 	if len(input.Tags) > 0 {
 		queryParams.Add("tags", strings.Join(input.Tags, ","))
