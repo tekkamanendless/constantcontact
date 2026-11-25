@@ -33,6 +33,16 @@ type GetContactsInput struct {
 	UpdatedBefore time.Time          `query:"updated_before"`
 }
 
+type GetContactInput struct {
+	_ string `url:"/v3/contacts/{contact_id}"`
+
+	ContactID string `path:"contact_id"`
+
+	Include []ContactFieldName `query:"include"` // Comma-separated list of fields to include.
+}
+
+type PutContactInput Contact
+
 type ContactFieldName string
 
 const (
@@ -59,59 +69,63 @@ const (
 type GetContactsOutput struct {
 	HasLinks
 
-	Contacts      []GetContactsOutputContact `json:"contacts"`
-	ContactsCount int                        `json:"contacts_count"`
-	Status        string                     `json:"status"`
+	Contacts      []Contact `json:"contacts"`
+	ContactsCount int       `json:"contacts_count"`
+	Status        string    `json:"status"`
 }
 
-type GetContactsOutputContact struct {
-	ContactID       string                         `json:"contact_id"`
-	EmailAddress    GetContactsOutputEmailAddress  `json:"email_address"`
-	FirstName       string                         `json:"first_name"`
-	LastName        string                         `json:"last_name"`
-	JobTitle        string                         `json:"job_title"`
-	CompanyName     string                         `json:"company_name"`
-	BirthdayMonth   int                            `json:"birthday_month"`
-	BirthdayDay     int                            `json:"birthday_day"`
-	Anniversary     string                         `json:"anniversary"` // TODO: time.Time Just a date?
-	UpdateSource    string                         `json:"update_source"`
-	CreateSource    string                         `json:"create_source"`
-	CreatedAt       string                         `json:"created_at"` // TODO: time.Time
-	UpdatedAt       string                         `json:"updated_at"` // TODO: time.Time
-	DeletedAt       string                         `json:"deleted_at"` // TODO: time.Time Just a date?
-	CustomFields    []GetContactsOutputCustomField `json:"custom_fields"`
-	PhoneNumbers    []GetContactsOutputPhoneNumber `json:"phone_numbers"`
-	StreetAddresses []any                          `json:"street_addresses"` // TODO: THIS
-	ListMemberships []string                       `json:"list_memberships"`
-	Taggings        []string                       `json:"taggings"`
+type GetContactOutput Contact
+
+type PutContactOutput Contact
+
+type Contact struct {
+	ContactID       string               `json:"contact_id"`
+	EmailAddress    ContactEmailAddress  `json:"email_address"`
+	FirstName       string               `json:"first_name,omitempty"`
+	LastName        string               `json:"last_name,omitempty"`
+	JobTitle        string               `json:"job_title,omitempty"`
+	CompanyName     string               `json:"company_name,omitempty"`
+	BirthdayMonth   int                  `json:"birthday_month,omitempty"`
+	BirthdayDay     int                  `json:"birthday_day,omitempty"`
+	Anniversary     string               `json:"anniversary,omitempty"` // TODO: time.Time Just a date?
+	UpdateSource    string               `json:"update_source,omitempty"`
+	CreateSource    string               `json:"create_source,omitempty"`
+	CreatedAt       string               `json:"created_at,omitempty"` // TODO: time.Time
+	UpdatedAt       string               `json:"updated_at,omitempty"` // TODO: time.Time
+	DeletedAt       string               `json:"deleted_at,omitempty"` // TODO: time.Time Just a date?
+	CustomFields    []ContactCustomField `json:"custom_fields,omitempty"`
+	PhoneNumbers    []ContactPhoneNumber `json:"phone_numbers,omitempty"`
+	StreetAddresses []any                `json:"street_addresses,omitempty"` // TODO: THIS
+	ListMemberships []string             `json:"list_memberships,omitempty"`
+	Taggings        []string             `json:"taggings,omitempty"`
 	Notes           []struct {
 		NoteID    string `json:"note_id"`
 		CreatedAt string `json:"created_at"` // TODO: time.Time
 		Content   string `json:"content"`
-	} `json:"notes"`
+	} `json:"notes,omitempty"`
 	SMSChannel any `json:"sms_channel"` // TODO: THIS
 }
 
-type GetContactsOutputEmailAddress struct {
+type ContactEmailAddress struct {
 	Address          string `json:"address"`
 	PermissionToSend string `json:"permission_to_send"`
 	CreatedAt        string `json:"created_at"` // TODO: time.Time
 	UpdatedAt        string `json:"updated_at"` // TODO: time.Time
-	OptInSource      string `json:"opt_in_source"`
-	OptInDate        string `json:"opt_in_date"` // TODO: time.Time
-	OptOutSource     string `json:"opt_out_source"`
-	OptOutDate       string `json:"opt_out_date"` // TODO: time.Time
-	OptOutReason     string `json:"opt_out_reason"`
-	ConfirmStatus    string `json:"confirm_status"`
+	OptInSource      string `json:"opt_in_source,omitempty"`
+	OptInDate        string `json:"opt_in_date,omitempty"` // TODO: time.Time
+	OptOutSource     string `json:"opt_out_source,omitempty"`
+	OptOutDate       string `json:"opt_out_date,omitempty"` // TODO: time.Time
+	OptOutReason     string `json:"opt_out_reason,omitempty"`
+	ConfirmStatus    string `json:"confirm_status,omitempty"`
 }
 
-type GetContactsOutputCustomField struct {
+type ContactCustomField struct {
 	CustomFieldID string   `json:"custom_field_id"`
 	Value         string   `json:"value"`
 	ChoiceIDs     []string `json:"choice_ids"`
 }
 
-type GetContactsOutputPhoneNumber struct {
+type ContactPhoneNumber struct {
 	PhoneNumberID string `json:"phone_number_id"`
 	PhoneNumber   string `json:"phone_number"`
 	Kind          string `json:"kind"`
@@ -191,7 +205,7 @@ func (c *Client) GetContacts(ctx context.Context, input GetContactsInput) (GetCo
 						time.Sleep(10 * time.Second)
 						return pageOutput, err
 					}
-					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get contacts: %w", err))
+					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
 				}
 				return pageOutput, nil
 			})
@@ -206,6 +220,41 @@ func (c *Client) GetContacts(ctx context.Context, input GetContactsInput) (GetCo
 				link = pageOutput.Links["next"].Href
 			}
 		}
+	}
+
+	return output, nil
+}
+
+func (c *Client) GetContact(ctx context.Context, input GetContactInput) (GetContactOutput, error) {
+	var output GetContactOutput
+
+	queryParams := url.Values{}
+	if len(input.Include) > 0 {
+		var stringValues []string
+		for _, value := range input.Include {
+			stringValues = append(stringValues, string(value))
+		}
+		queryParams.Add("include", strings.Join(stringValues, ","))
+	}
+
+	targetURL := "/v3/contacts/" + url.PathEscape(input.ContactID) + "?" + queryParams.Encode()
+
+	err := c.restClient.Do(ctx, http.MethodGet, targetURL, nil, &output)
+	if err != nil {
+		return output, fmt.Errorf("failed to get contact: %w", err)
+	}
+
+	return output, nil
+}
+
+func (c *Client) PutContact(ctx context.Context, input PutContactInput) (PutContactOutput, error) {
+	var output PutContactOutput
+
+	targetURL := "/v3/contacts/" + url.PathEscape(input.ContactID)
+
+	err := c.restClient.Do(ctx, http.MethodPut, targetURL, input, &output)
+	if err != nil {
+		return output, fmt.Errorf("failed to put contact: %w", err)
 	}
 
 	return output, nil
