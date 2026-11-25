@@ -1,0 +1,89 @@
+package constantcontact
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strconv"
+	"time"
+
+	"github.com/cenkalti/backoff/v5"
+	"github.com/tekkamanendless/httperror"
+)
+
+type GetEmailsInput struct {
+	_ string `url:"/v3/emails"`
+
+	Limit      int       `query:"limit"`
+	BeforeDate time.Time `query:"before_date"`
+	AfterDate  time.Time `query:"after_date"`
+}
+
+type GetEmailsOutput struct {
+	HasLinks
+
+	Campaigns []GetEmailsOutputCampaign `json:"campaigns"`
+}
+
+type GetEmailsOutputCampaign struct {
+	CampaignID    string `json:"campaign_id"`
+	CreatedAt     string `json:"created_at"` // TODO: time.Time
+	CurrentStatus string `json:"current_status"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	TypeCode      int    `json:"type_code"`
+	UpdatedAt     string `json:"updated_at"` // TODO: time.Time
+}
+
+func (c *Client) GetEmails(ctx context.Context, input GetEmailsInput) (GetEmailsOutput, error) {
+	var output GetEmailsOutput
+
+	queryParams := url.Values{}
+	if input.Limit > 0 {
+		queryParams.Add("limit", strconv.Itoa(input.Limit))
+	}
+	if !input.BeforeDate.IsZero() {
+		queryParams.Add("before_date", input.BeforeDate.UTC().Format(time.RFC3339))
+	}
+	if !input.AfterDate.IsZero() {
+		queryParams.Add("after_date", input.AfterDate.UTC().Format(time.RFC3339))
+	}
+
+	err := c.restClient.Do(ctx, http.MethodGet, "/v3/emails?"+queryParams.Encode(), nil, &output)
+	if err != nil {
+		return output, err
+	}
+
+	// Handle pagination.
+	if output.Links != nil && output.Links["next"].Href != "" {
+		link := output.Links["next"].Href
+		for link != "" {
+			pageOutput, err := backoff.Retry(ctx, func() (GetEmailsOutput, error) {
+				var pageOutput GetEmailsOutput
+				err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
+				if err != nil {
+					if errors.Is(err, httperror.ErrStatusTooManyRequests) {
+						time.Sleep(10 * time.Second)
+						return pageOutput, err
+					}
+					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
+				}
+				return pageOutput, nil
+			})
+			if err != nil {
+				return output, err
+			}
+
+			output.Campaigns = append(output.Campaigns, pageOutput.Campaigns...)
+
+			link = ""
+			if pageOutput.Links != nil && pageOutput.Links["next"].Href != "" {
+				link = pageOutput.Links["next"].Href
+			}
+		}
+	}
+
+	return output, nil
+}

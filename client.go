@@ -1,6 +1,7 @@
 package constantcontact
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,4 +87,9 @@ func NewClient(opts ...Option) *Client {
 		config:     config,
 		restClient: restapiclient.New(config.BaseURL, restClientOptions...),
 	}
+}
+
+// Do performs a REST API call to the Constant Contact API.
+func (c *Client) Do(ctx context.Context, method string, targetURL string, input any, output any, options ...restapiclient.Option) error {
+	return c.restClient.Do(ctx, method, targetURL, input, output, options...)
 }
