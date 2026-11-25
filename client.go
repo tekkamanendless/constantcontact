@@ -8,19 +8,21 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/cenkalti/backoff/v5"
 	"github.com/tekkamanendless/httperror"
 	"github.com/tekkamanendless/restapiclient"
 )
 
 type Client struct {
 	config     Config
-	restClient *restapiclient.Client
+	restClient restapiclient.Client
 }
 
 type Config struct {
-	BaseURL      string
-	AccessToken  string
-	RefreshToken string
+	BaseURL        string
+	AccessToken    string
+	RefreshToken   string
+	BackOffOptions []backoff.RetryOption
 }
 
 type Option func(*Config)
@@ -28,6 +30,12 @@ type Option func(*Config)
 func WithAccessToken(accessToken string) Option {
 	return func(c *Config) {
 		c.AccessToken = accessToken
+	}
+}
+
+func WithBackOffOptions(backOffOptions ...backoff.RetryOption) Option {
+	return func(c *Config) {
+		c.BackOffOptions = append(c.BackOffOptions, backOffOptions...)
 	}
 }
 
@@ -52,6 +60,7 @@ func NewClient(opts ...Option) *Client {
 	}
 
 	restClientOptions := []restapiclient.Option{
+		restapiclient.OptionBaseURL(config.BaseURL),
 		restapiclient.OptionHeader("Accept", "application/json"),
 		restapiclient.OptionErrorHandler(func(response *http.Response) error {
 			httpErr := httperror.ErrorFromStatus(response.StatusCode)
@@ -78,6 +87,7 @@ func NewClient(opts ...Option) *Client {
 
 			return fmt.Errorf("%w: %w", httpErr, errors.Join(errs...))
 		}),
+		restapiclient.OptionBackOffOptions(config.BackOffOptions...),
 	}
 	if config.AccessToken != "" {
 		restClientOptions = append(restClientOptions, restapiclient.OptionHeader("Authorization", "Bearer "+config.AccessToken))
@@ -85,7 +95,7 @@ func NewClient(opts ...Option) *Client {
 
 	return &Client{
 		config:     config,
-		restClient: restapiclient.New(config.BaseURL, restClientOptions...),
+		restClient: restapiclient.New(restClientOptions...),
 	}
 }
 

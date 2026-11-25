@@ -2,16 +2,12 @@ package constantcontact
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/cenkalti/backoff/v5"
-	"github.com/tekkamanendless/httperror"
 )
 
 type GetContactsInput struct {
@@ -197,20 +193,10 @@ func (c *Client) GetContacts(ctx context.Context, input GetContactsInput) (GetCo
 	if output.Links != nil && output.Links["next"].Href != "" {
 		link := output.Links["next"].Href
 		for link != "" {
-			pageOutput, err := backoff.Retry(ctx, func() (GetContactsOutput, error) {
-				var pageOutput GetContactsOutput
-				err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
-				if err != nil {
-					if errors.Is(err, httperror.ErrStatusTooManyRequests) {
-						time.Sleep(10 * time.Second)
-						return pageOutput, err
-					}
-					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
-				}
-				return pageOutput, nil
-			})
+			var pageOutput GetContactsOutput
+			err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
 			if err != nil {
-				return output, err
+				return pageOutput, fmt.Errorf("failed to get page: %w", err)
 			}
 
 			output.Contacts = append(output.Contacts, pageOutput.Contacts...)
