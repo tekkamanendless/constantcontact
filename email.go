@@ -2,15 +2,11 @@ package constantcontact
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/cenkalti/backoff/v5"
-	"github.com/tekkamanendless/httperror"
 )
 
 type GetEmailsInput struct {
@@ -60,20 +56,10 @@ func (c *Client) GetEmails(ctx context.Context, input GetEmailsInput) (GetEmails
 	if output.Links != nil && output.Links["next"].Href != "" {
 		link := output.Links["next"].Href
 		for link != "" {
-			pageOutput, err := backoff.Retry(ctx, func() (GetEmailsOutput, error) {
-				var pageOutput GetEmailsOutput
-				err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
-				if err != nil {
-					if errors.Is(err, httperror.ErrStatusTooManyRequests) {
-						time.Sleep(10 * time.Second)
-						return pageOutput, err
-					}
-					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
-				}
-				return pageOutput, nil
-			})
+			var pageOutput GetEmailsOutput
+			err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
 			if err != nil {
-				return output, err
+				return pageOutput, fmt.Errorf("failed to get page: %w", err)
 			}
 
 			output.Campaigns = append(output.Campaigns, pageOutput.Campaigns...)

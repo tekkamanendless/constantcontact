@@ -2,15 +2,10 @@ package constantcontact
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
-
-	"github.com/cenkalti/backoff/v5"
-	"github.com/tekkamanendless/httperror"
 )
 
 type GetEmailSendsReportInput struct {
@@ -55,20 +50,10 @@ func (c *Client) GetEmailSendsReport(ctx context.Context, input GetEmailSendsRep
 	if output.Links != nil && output.Links["next"].Href != "" {
 		link := output.Links["next"].Href
 		for link != "" {
-			pageOutput, err := backoff.Retry(ctx, func() (GetEmailSendsReportOutput, error) {
-				var pageOutput GetEmailSendsReportOutput
-				err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
-				if err != nil {
-					if errors.Is(err, httperror.ErrStatusTooManyRequests) {
-						time.Sleep(10 * time.Second)
-						return pageOutput, err
-					}
-					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
-				}
-				return pageOutput, nil
-			})
+			var pageOutput GetEmailSendsReportOutput
+			err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
 			if err != nil {
-				return output, err
+				return pageOutput, fmt.Errorf("failed to get page: %w", err)
 			}
 
 			output.TrackingActivities = append(output.TrackingActivities, pageOutput.TrackingActivities...)
@@ -126,20 +111,10 @@ func (c *Client) GetEmailOptoutsReport(ctx context.Context, input GetEmailOptout
 	if output.Links != nil && output.Links["next"].Href != "" {
 		link := output.Links["next"].Href
 		for link != "" {
-			pageOutput, err := backoff.Retry(ctx, func() (GetEmailOptoutsReportOutput, error) {
-				var pageOutput GetEmailOptoutsReportOutput
-				err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
-				if err != nil {
-					if errors.Is(err, httperror.ErrStatusTooManyRequests) {
-						time.Sleep(10 * time.Second)
-						return pageOutput, err
-					}
-					return pageOutput, backoff.Permanent(fmt.Errorf("failed to get page: %w", err))
-				}
-				return pageOutput, nil
-			})
+			var pageOutput GetEmailOptoutsReportOutput
+			err := c.restClient.Do(ctx, http.MethodGet, link, nil, &pageOutput)
 			if err != nil {
-				return output, err
+				return pageOutput, fmt.Errorf("failed to get page: %w", err)
 			}
 
 			output.TrackingActivities = append(output.TrackingActivities, pageOutput.TrackingActivities...)
