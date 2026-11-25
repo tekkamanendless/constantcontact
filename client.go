@@ -87,6 +87,7 @@ func NewClient(opts ...Option) *Client {
 
 			return fmt.Errorf("%w: %w", httpErr, errors.Join(errs...))
 		}),
+		restapiclient.OptionBackOffIsPermanentErrorFunction(restapiclient.DefaultBackOffIsPermanentErrorFunction),
 		restapiclient.OptionBackOffOptions(config.BackOffOptions...),
 	}
 	if config.AccessToken != "" {
