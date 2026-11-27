@@ -3,9 +3,8 @@ package constantcontact
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
 
+	"github.com/tekkamanendless/constantcontact/wrap"
 	"github.com/tekkamanendless/restapiclient"
 )
 
@@ -38,27 +37,8 @@ type PostOauth2TokenOutput struct {
 // PostOauth2Token requests an Oauth2 access token.
 func (c *Client) PostOauth2Token(ctx context.Context, input PostOauth2TokenInput) (PostOauth2TokenOutput, error) {
 	var output PostOauth2TokenOutput
-
-	queryParams := url.Values{}
-	queryParams.Add("client_id", input.ClientID)
-	if input.DeviceCode != "" {
-		queryParams.Add("device_code", input.DeviceCode)
-	}
-	queryParams.Add("grant_type", string(input.GrantType))
-	if input.RefreshToken != "" {
-		queryParams.Add("refresh_token", input.RefreshToken)
-	}
-	if input.Scope != "" {
-		queryParams.Add("scope", input.Scope)
-	}
-	targetURL := "https://authz.constantcontact.com/oauth2/default/v1/token?" + queryParams.Encode()
-
-	err := c.restClient.Do(ctx, http.MethodPost, targetURL, nil, &output, restapiclient.OptionHeader("Content-Type", "application/x-www-form-urlencoded"))
-	if err != nil {
-		return output, fmt.Errorf("failed to refresh token: %w", err)
-	}
-
-	return output, nil
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
+	return output, err
 }
 
 // AuthenticateWithOauth2 authenticates the client with the OAuth2 token.

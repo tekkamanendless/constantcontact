@@ -67,7 +67,9 @@ func parseRequestInput(input any) (RequestInput, error) {
 	var bodyInterface any
 
 	// First pass: parse all the "api" tagged fields.
-	for _, structField := range reflect.VisibleFields(inputValue.Type()) {
+	relevantStructFields := reflectListAllBlankStructFields(inputValue)
+	relevantStructFields = append(relevantStructFields, reflect.VisibleFields(inputValue.Type())...)
+	for _, structField := range relevantStructFields {
 		fieldValue := inputValue.FieldByName(structField.Name)
 
 		for _, tagName := range supportedTags {
@@ -101,7 +103,10 @@ func parseRequestInput(input any) (RequestInput, error) {
 				_ = queryParameterParts[1] // TODO: any parameters
 			}
 
-			stringValue := reflectValueToString(fieldValue)
+			stringValue, err := reflectValueToString(fieldValue)
+			if err != nil {
+				return requestInput, fmt.Errorf("failed to convert value to string: %w", err)
+			}
 			requestInput.QueryParams.Set(queryParameterName, stringValue)
 		case "header":
 			headerParts := strings.SplitN(apiTagValue, ",", 2)
@@ -110,7 +115,10 @@ func parseRequestInput(input any) (RequestInput, error) {
 				_ = headerParts[1] // TODO: any parameters
 			}
 
-			stringValue := reflectValueToString(fieldValue)
+			stringValue, err := reflectValueToString(fieldValue)
+			if err != nil {
+				return requestInput, fmt.Errorf("failed to convert value to string: %w", err)
+			}
 			requestInput.Headers.Set(headerName, stringValue)
 		case "body":
 			bodyInterface = fieldValue.Interface()
@@ -172,7 +180,11 @@ func parseRequestInput(input any) (RequestInput, error) {
 				continue
 			}
 
-			form.Set(tagName, reflectValueToString(fieldValue))
+			stringValue, err := reflectValueToString(fieldValue)
+			if err != nil {
+				return requestInput, fmt.Errorf("failed to convert value to string: %w", err)
+			}
+			form.Set(tagName, stringValue)
 		}
 		requestInput.Body = []byte(form.Encode())
 	} else if len(tagFieldsMap["json"]) > 0 {
@@ -250,18 +262,45 @@ func parseRequestInput(input any) (RequestInput, error) {
 	return requestInput, nil
 }
 
-func reflectValueToString(value reflect.Value) string {
-	if v, ok := reflect.TypeAssert[string](value); ok {
-		return v
+func reflectValueToString(value reflect.Value) (string, error) {
+	if value.Kind() == reflect.String {
+		return value.String(), nil
+	} else if v, ok := reflect.TypeAssert[string](value); ok {
+		return v, nil
 	} else if v, ok := reflect.TypeAssert[int](value); ok {
-		return strconv.Itoa(v)
+		return strconv.Itoa(v), nil
 	} else if v, ok := reflect.TypeAssert[int64](value); ok {
-		return strconv.FormatInt(v, 10)
+		return strconv.FormatInt(v, 10), nil
 	} else if v, ok := reflect.TypeAssert[float64](value); ok {
-		return strconv.FormatFloat(v, 'f', -1, 64)
+		return strconv.FormatFloat(v, 'f', -1, 64), nil
 	} else if v, ok := reflect.TypeAssert[fmt.Stringer](value); ok {
-		return v.String()
+		return v.String(), nil
 	}
 
-	return ""
+	return "", fmt.Errorf("unsupported value type: %s", value.Type())
+}
+
+func reflectListAllBlankStructFields(value reflect.Value) []reflect.StructField {
+	for value.Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+	if value.Kind() != reflect.Struct {
+		return nil
+	}
+
+	var blankStructFields []reflect.StructField
+	for i := range value.Type().NumField() {
+		structField := value.Type().Field(i)
+		if structField.Name == "_" {
+			blankStructFields = append(blankStructFields, structField)
+			continue
+		}
+
+		if structField.Anonymous {
+			blankStructFields = append(blankStructFields, reflectListAllBlankStructFields(value.FieldByName(structField.Name))...)
+			continue
+		}
+	}
+
+	return blankStructFields
 }
