@@ -1,0 +1,156 @@
+package wrap
+
+import (
+	"net/http"
+	"net/url"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestParseRequestInput(t *testing.T) {
+	t.Run("Trivial", func(t *testing.T) {
+		input := struct{}{}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method: http.MethodGet,
+		}, requestInput)
+	})
+	t.Run("Method", func(t *testing.T) {
+		input := struct {
+			Method string `api:"httpmethod:GET"`
+		}{}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method:      http.MethodGet,
+			QueryParams: url.Values{},
+			Headers:     http.Header{},
+		}, requestInput)
+	})
+	t.Run("Path", func(t *testing.T) {
+		input := struct {
+			Path string `api:"httppath:/v1/contacts"`
+		}{}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method:      http.MethodGet,
+			Path:        "/v1/contacts",
+			QueryParams: url.Values{},
+			Headers:     http.Header{},
+		}, requestInput)
+	})
+	t.Run("QueryParams", func(t *testing.T) {
+		input := struct {
+			Limit int    `api:"query:limit"`
+			Name  string `api:"query:name"`
+		}{}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method: http.MethodGet,
+			QueryParams: url.Values{
+				"limit": {"10"},
+				"name":  {"John"},
+			},
+			Headers: http.Header{},
+		}, requestInput)
+	})
+	t.Run("Headers", func(t *testing.T) {
+		input := struct {
+			Authorization string `api:"header:Authorization"`
+			ContentType   string `api:"header:Content-Type"`
+		}{
+			Authorization: "Bearer 1234567890",
+			ContentType:   "application/json",
+		}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method:      http.MethodGet,
+			QueryParams: url.Values{},
+			Headers: http.Header{
+				"Authorization": {"Bearer 1234567890"},
+				"Content-Type":  {"application/json"},
+			},
+		}, requestInput)
+	})
+	t.Run("Body", func(t *testing.T) {
+		t.Run("Raw", func(t *testing.T) {
+			t.Run("String", func(t *testing.T) {
+				input := struct {
+					Body string `api:"body"`
+				}{
+					Body: "Hello, world!",
+				}
+				requestInput, err := parseRequestInput(input)
+				require.NoError(t, err)
+				require.Equal(t, RequestInput{
+					Method:      http.MethodPost,
+					Body:        "Hello, world!",
+					QueryParams: url.Values{},
+					Headers: http.Header{
+						"Content-Type": {"text/plain"},
+					},
+				}, requestInput)
+			})
+			t.Run("Bytes", func(t *testing.T) {
+				input := struct {
+					Body []byte `api:"body"`
+				}{
+					Body: []byte("Hello, world!"),
+				}
+				requestInput, err := parseRequestInput(input)
+				require.NoError(t, err)
+				require.Equal(t, RequestInput{
+					Method:      http.MethodPost,
+					Body:        []byte("Hello, world!"),
+					QueryParams: url.Values{},
+					Headers: http.Header{
+						"Content-Type": {"application/octet-stream"},
+					},
+				}, requestInput)
+			})
+		})
+		t.Run("JSON", func(t *testing.T) {
+			input := struct {
+				FirstName string `jso:"first_name"`
+				LastName  string `json:"last_name"`
+			}{
+				FirstName: "John",
+				LastName:  "Doe",
+			}
+			requestInput, err := parseRequestInput(input)
+			require.NoError(t, err)
+			require.Equal(t, RequestInput{
+				Method:      http.MethodPost,
+				Body:        `{"first_name":"John","last_name":"Doe"}`,
+				QueryParams: url.Values{},
+				Headers: http.Header{
+					"Content-Type": {"application/json"},
+				},
+			}, requestInput)
+		})
+		t.Run("Form", func(t *testing.T) {
+			input := struct {
+				FirstName string `form:"first_name"`
+				LastName  string `form:"last_name"`
+			}{
+				FirstName: "John",
+				LastName:  "Doe",
+			}
+			requestInput, err := parseRequestInput(input)
+			require.NoError(t, err)
+			require.Equal(t, RequestInput{
+				Method:      http.MethodPost,
+				Body:        "first_name=John&last_name=Doe",
+				QueryParams: url.Values{},
+				Headers: http.Header{
+					"Content-Type": {"application/x-www-form-urlencoded"},
+				},
+			}, requestInput)
+		})
+	})
+}

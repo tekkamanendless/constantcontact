@@ -7,7 +7,8 @@ import (
 )
 
 type PostSignUpFormInput struct {
-	_ string `url:"/v3/contacts/sign_up_form"`
+	_ string `api:"httppath:/v3/contacts/sign_up_form"`
+	_ string `api:"httpmethod:POST"`
 
 	EmailAddress    *string                      `json:"email_address,omitempty"`
 	FirstName       *string                      `json:"first_name,omitempty"`

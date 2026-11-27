@@ -10,11 +10,12 @@ import (
 )
 
 type GetEmailsInput struct {
-	_ string `url:"/v3/emails"`
+	_ string `api:"httppath:/v3/emails"`
+	_ string `api:"httpmethod:GET"`
 
-	Limit      int       `query:"limit"`
-	BeforeDate time.Time `query:"before_date"`
-	AfterDate  time.Time `query:"after_date"`
+	Limit      int       `api:"query:limit"`
+	BeforeDate time.Time `api:"query:before_date"`
+	AfterDate  time.Time `api:"query:after_date"`
 }
 
 type GetEmailsOutput struct {

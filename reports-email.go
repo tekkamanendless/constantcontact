@@ -9,11 +9,12 @@ import (
 )
 
 type GetEmailSendsReportInput struct {
-	_ string `url:"/v3/reports/email_reports/{campaign_activity_id}/tracking/sends"`
+	_ string `api:"httppath:/v3/reports/email_reports/{campaign_activity_id}/tracking/sends"`
+	_ string `api:"httpmethod:GET"`
 
-	CampaignActivityID string `path:"campaign_activity_id"`
+	CampaignActivityID string `api:"path:campaign_activity_id"`
 
-	Limit int `query:"limit"`
+	Limit int `api:"query:limit"`
 }
 
 type GetEmailSendsReportOutput struct {
@@ -69,11 +70,12 @@ func (c *Client) GetEmailSendsReport(ctx context.Context, input GetEmailSendsRep
 }
 
 type GetEmailOptoutsReportInput struct {
-	_ string `url:"/v3/reports/email_reports/{campaign_activity_id}/tracking/optouts"`
+	_ string `api:"httppath:/v3/reports/email_reports/{campaign_activity_id}/tracking/optouts"`
+	_ string `api:"httpmethod:GET"`
 
-	CampaignActivityID string `path:"campaign_activity_id"`
+	CampaignActivityID string `api:"path:campaign_activity_id"`
 
-	Limit int `query:"limit"`
+	Limit int `api:"query:limit"`
 }
 
 type GetEmailOptoutsReportOutput struct {

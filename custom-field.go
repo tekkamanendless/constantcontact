@@ -9,9 +9,10 @@ import (
 )
 
 type GetCustomFieldsInput struct {
-	_ string `url:"/v3/contact_custom_fields"`
+	_ string `api:"httppath:/v3/contact_custom_fields"`
+	_ string `api:"httpmethod:GET"`
 
-	Limit int `url:"limit"`
+	Limit int `api:"query:limit"`
 }
 
 type GetCustomFieldsOutput struct {

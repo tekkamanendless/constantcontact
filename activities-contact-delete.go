@@ -6,7 +6,8 @@ import (
 )
 
 type ActivitiesContactDeleteInput struct {
-	_ string `url:"/v3/activities/contact_delete"`
+	_ string `api:"httppath:/v3/activities/contact_delete"`
+	_ string `api:"httpmethod:POST"`
 
 	ContactIDs []string `json:"contact_ids,omitempty"` // Every contact ID in the list will be deleted.  Can only be used if ListIDs is not used.
 	ListIDs    []string `json:"list_ids,omitempty"`    // Every contact in these lists will be deleted.  Can only be used if ContactIDs is not used.

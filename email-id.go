@@ -7,9 +7,10 @@ import (
 )
 
 type GetEmailIDInput struct {
-	_ string `url:"/v3/emails/{campaign_id}"`
+	_ string `api:"httppath:/v3/emails/{campaign_id}"`
+	_ string `api:"httpmethod:GET"`
 
-	CampaignID string `path:"campaign_id"`
+	CampaignID string `api:"path:campaign_id"`
 }
 
 type GetEmailIDOutput struct {

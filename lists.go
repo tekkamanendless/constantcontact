@@ -9,15 +9,16 @@ import (
 )
 
 type GetListsInput struct {
-	_ string `url:"/v3/contact_lists"`
+	_ string `api:"httppath:/v3/contact_lists"`
+	_ string `api:"httpmethod:GET"`
 
-	ChannelType               string `query:"channel_type"`
-	IncludeCount              bool   `query:"include_count"`
-	IncludeMembershipCount    bool   `query:"include_membership_count"`
-	IncludeSMSMembershipCount bool   `query:"include_sms_membership_count"`
-	Limit                     int    `query:"limit"`
-	Name                      string `query:"name"`
-	Status                    string `query:"status"`
+	ChannelType               string `api:"query:channel_type"`
+	IncludeCount              bool   `api:"query:include_count"`
+	IncludeMembershipCount    bool   `api:"query:include_membership_count"`
+	IncludeSMSMembershipCount bool   `api:"query:include_sms_membership_count"`
+	Limit                     int    `api:"query:limit"`
+	Name                      string `api:"query:name"`
+	Status                    string `api:"query:status"`
 }
 
 type GetListsOutput struct {
