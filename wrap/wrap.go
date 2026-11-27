@@ -135,12 +135,40 @@ func parseRequestInput(input any) (RequestInput, error) {
 
 			tagName := strings.TrimSpace(tagParts[0])
 			var tagValue string
+			tagExtraMap := map[string]bool{}
 			if len(tagParts) > 1 {
 				tagValue = tagParts[1]
+
+				tagExtras := strings.Split(tagValue, ",")
+				for i, tagExtra := range tagExtras {
+					tagExtra = strings.TrimSpace(tagExtra)
+					if len(tagExtra) == 0 {
+						return requestInput, fmt.Errorf("invalid form tag syntax: %s", tagValue)
+					}
+					tagExtras[i] = tagExtra
+				}
+
+				for _, tagExtra := range tagExtras {
+					tagExtraMap[tagExtra] = true
+				}
 			}
-			_ = tagValue // TODO: any parameters
 
 			if tagName == "-" {
+				continue
+			}
+
+			skipField := false
+			for tagExtra := range tagExtraMap {
+				switch tagExtra {
+				case "omitempty":
+					if fieldValue.IsZero() {
+						skipField = true
+					}
+				default:
+					return requestInput, fmt.Errorf("unsupported form tag extra: %s", tagExtra)
+				}
+			}
+			if skipField {
 				continue
 			}
 
@@ -167,7 +195,9 @@ func parseRequestInput(input any) (RequestInput, error) {
 			if len(tagParts) > 1 {
 				tagValue = tagParts[1]
 			}
-			_ = tagValue // TODO: any parameters
+			if len(tagValue) > 0 {
+				return requestInput, fmt.Errorf("unsupported json tag extras: %s", tagValue)
+			}
 
 			if tagName == "-" {
 				continue

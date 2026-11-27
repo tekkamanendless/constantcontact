@@ -139,23 +139,46 @@ func TestParseRequestInput(t *testing.T) {
 			}, requestInput)
 		})
 		t.Run("Form", func(t *testing.T) {
-			input := struct {
-				FirstName string `form:"first_name"`
-				LastName  string `form:"last_name"`
-			}{
-				FirstName: "John",
-				LastName:  "Doe",
-			}
-			requestInput, err := parseRequestInput(input)
-			require.NoError(t, err)
-			require.Equal(t, RequestInput{
-				Method:      http.MethodPost,
-				Body:        []byte("first_name=John&last_name=Doe"),
-				QueryParams: url.Values{},
-				Headers: http.Header{
-					"Content-Type": {"application/x-www-form-urlencoded"},
-				},
-			}, requestInput)
+			t.Run("Simple", func(t *testing.T) {
+				input := struct {
+					FirstName string `form:"first_name"`
+					LastName  string `form:"last_name"`
+				}{
+					FirstName: "John",
+					LastName:  "Doe",
+				}
+				requestInput, err := parseRequestInput(input)
+				require.NoError(t, err)
+				require.Equal(t, RequestInput{
+					Method:      http.MethodPost,
+					Body:        []byte("first_name=John&last_name=Doe"),
+					QueryParams: url.Values{},
+					Headers: http.Header{
+						"Content-Type": {"application/x-www-form-urlencoded"},
+					},
+				}, requestInput)
+			})
+			t.Run("OmitEmpty", func(t *testing.T) {
+				input := struct {
+					FirstName  string `form:"first_name"`
+					MiddleName string `form:"middle_name,omitempty"`
+					LastName   string `form:"last_name"`
+				}{
+					FirstName:  "John",
+					MiddleName: "",
+					LastName:   "Doe",
+				}
+				requestInput, err := parseRequestInput(input)
+				require.NoError(t, err)
+				require.Equal(t, RequestInput{
+					Method:      http.MethodPost,
+					Body:        []byte("first_name=John&last_name=Doe"),
+					QueryParams: url.Values{},
+					Headers: http.Header{
+						"Content-Type": {"application/x-www-form-urlencoded"},
+					},
+				}, requestInput)
+			})
 		})
 	})
 }
