@@ -14,7 +14,9 @@ func TestParseRequestInput(t *testing.T) {
 		requestInput, err := parseRequestInput(input)
 		require.NoError(t, err)
 		require.Equal(t, RequestInput{
-			Method: http.MethodGet,
+			Method:      http.MethodGet,
+			QueryParams: url.Values{},
+			Headers:     http.Header{},
 		}, requestInput)
 	})
 	t.Run("Method", func(t *testing.T) {
@@ -46,7 +48,10 @@ func TestParseRequestInput(t *testing.T) {
 		input := struct {
 			Limit int    `api:"query:limit"`
 			Name  string `api:"query:name"`
-		}{}
+		}{
+			Limit: 10,
+			Name:  "John",
+		}
 		requestInput, err := parseRequestInput(input)
 		require.NoError(t, err)
 		require.Equal(t, RequestInput{
@@ -89,7 +94,7 @@ func TestParseRequestInput(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, RequestInput{
 					Method:      http.MethodPost,
-					Body:        "Hello, world!",
+					Body:        []byte("Hello, world!"),
 					QueryParams: url.Values{},
 					Headers: http.Header{
 						"Content-Type": {"text/plain"},
@@ -116,7 +121,7 @@ func TestParseRequestInput(t *testing.T) {
 		})
 		t.Run("JSON", func(t *testing.T) {
 			input := struct {
-				FirstName string `jso:"first_name"`
+				FirstName string `json:"first_name"`
 				LastName  string `json:"last_name"`
 			}{
 				FirstName: "John",
@@ -126,7 +131,7 @@ func TestParseRequestInput(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, RequestInput{
 				Method:      http.MethodPost,
-				Body:        `{"first_name":"John","last_name":"Doe"}`,
+				Body:        []byte(`{"first_name":"John","last_name":"Doe"}`),
 				QueryParams: url.Values{},
 				Headers: http.Header{
 					"Content-Type": {"application/json"},
@@ -145,7 +150,7 @@ func TestParseRequestInput(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, RequestInput{
 				Method:      http.MethodPost,
-				Body:        "first_name=John&last_name=Doe",
+				Body:        []byte("first_name=John&last_name=Doe"),
 				QueryParams: url.Values{},
 				Headers: http.Header{
 					"Content-Type": {"application/x-www-form-urlencoded"},
