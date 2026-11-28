@@ -2,11 +2,13 @@ package constantcontact
 
 import (
 	"context"
-	"net/http"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type ActivitiesContactDeleteInput struct {
-	_ string `url:"/v3/activities/contact_delete"`
+	_ string `api:"httppath:/v3/activities/contact_delete"`
+	_ string `api:"httpmethod:POST"`
 
 	ContactIDs []string `json:"contact_ids,omitempty"` // Every contact ID in the list will be deleted.  Can only be used if ListIDs is not used.
 	ListIDs    []string `json:"list_ids,omitempty"`    // Every contact in these lists will be deleted.  Can only be used if ContactIDs is not used.
@@ -32,11 +34,6 @@ type ActivitiesContactDeleteOutput struct {
 
 func (c *Client) ActivitiesContactDelete(ctx context.Context, input ActivitiesContactDeleteInput) (ActivitiesContactDeleteOutput, error) {
 	var output ActivitiesContactDeleteOutput
-
-	err := c.restClient.Do(ctx, http.MethodPost, "/v3/activities/contact_delete", input, &output)
-	if err != nil {
-		return output, err
-	}
-
-	return output, nil
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
+	return output, err
 }

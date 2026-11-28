@@ -3,21 +3,21 @@ package constantcontact
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetListsInput struct {
-	_ string `url:"/v3/contact_lists"`
+	_ string `api:"httppath:/v3/contact_lists"`
+	_ string `api:"httpmethod:GET"`
 
-	ChannelType               string `query:"channel_type"`
-	IncludeCount              bool   `query:"include_count"`
-	IncludeMembershipCount    bool   `query:"include_membership_count"`
-	IncludeSMSMembershipCount bool   `query:"include_sms_membership_count"`
-	Limit                     int    `query:"limit"`
-	Name                      string `query:"name"`
-	Status                    string `query:"status"`
+	ChannelType               string `api:"query:channel_type"`
+	IncludeCount              bool   `api:"query:include_count"`
+	IncludeMembershipCount    bool   `api:"query:include_membership_count"`
+	IncludeSMSMembershipCount bool   `api:"query:include_sms_membership_count"`
+	Limit                     int    `api:"query:limit"`
+	Name                      string `api:"query:name"`
+	Status                    string `api:"query:status"`
 }
 
 type GetListsOutput struct {
@@ -40,33 +40,7 @@ type GetListsOutputList struct {
 
 func (c *Client) GetLists(ctx context.Context, input GetListsInput) (GetListsOutput, error) {
 	var output GetListsOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-	if input.IncludeCount {
-		queryParams.Add("include_count", "true")
-	}
-	if input.IncludeMembershipCount {
-		queryParams.Add("include_membership_count", "true")
-	}
-	if input.Name != "" {
-		queryParams.Add("name", input.Name)
-	}
-	if input.Status != "" {
-		queryParams.Add("status", input.Status)
-	}
-	if input.ChannelType != "" {
-		queryParams.Add("channel_type", input.ChannelType)
-	}
-	if input.IncludeSMSMembershipCount {
-		queryParams.Add("include_sms_membership_count", "true")
-	}
-
-	targetURL := "/v3/contact_lists?" + queryParams.Encode()
-
-	err := c.restClient.Do(ctx, http.MethodGet, targetURL, nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
 		return output, fmt.Errorf("failed to get lists: %w", err)
 	}

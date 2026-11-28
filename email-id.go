@@ -2,14 +2,15 @@ package constantcontact
 
 import (
 	"context"
-	"net/http"
-	"net/url"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetEmailIDInput struct {
-	_ string `url:"/v3/emails/{campaign_id}"`
+	_ string `api:"httppath:/v3/emails/{campaign_id}"`
+	_ string `api:"httpmethod:GET"`
 
-	CampaignID string `path:"campaign_id"`
+	CampaignID string `api:"path:campaign_id"`
 }
 
 type GetEmailIDOutput struct {
@@ -29,11 +30,6 @@ type GetEmailIDOutput struct {
 
 func (c *Client) GetEmailID(ctx context.Context, input GetEmailIDInput) (GetEmailIDOutput, error) {
 	var output GetEmailIDOutput
-
-	err := c.restClient.Do(ctx, http.MethodGet, "/v3/emails/"+url.PathEscape(input.CampaignID), nil, &output)
-	if err != nil {
-		return output, err
-	}
-
-	return output, nil
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
+	return output, err
 }

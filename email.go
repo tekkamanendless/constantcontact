@@ -4,17 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 	"time"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetEmailsInput struct {
-	_ string `url:"/v3/emails"`
+	_ string `api:"httppath:/v3/emails"`
+	_ string `api:"httpmethod:GET"`
 
-	Limit      int       `query:"limit"`
-	BeforeDate time.Time `query:"before_date"`
-	AfterDate  time.Time `query:"after_date"`
+	Limit      int       `api:"query:limit"`
+	BeforeDate time.Time `api:"query:before_date"`
+	AfterDate  time.Time `api:"query:after_date"`
 }
 
 type GetEmailsOutput struct {
@@ -35,19 +36,7 @@ type GetEmailsOutputCampaign struct {
 
 func (c *Client) GetEmails(ctx context.Context, input GetEmailsInput) (GetEmailsOutput, error) {
 	var output GetEmailsOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-	if !input.BeforeDate.IsZero() {
-		queryParams.Add("before_date", input.BeforeDate.UTC().Format(time.RFC3339))
-	}
-	if !input.AfterDate.IsZero() {
-		queryParams.Add("after_date", input.AfterDate.UTC().Format(time.RFC3339))
-	}
-
-	err := c.restClient.Do(ctx, http.MethodGet, "/v3/emails?"+queryParams.Encode(), nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
 		return output, err
 	}

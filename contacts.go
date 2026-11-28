@@ -11,30 +11,32 @@ import (
 )
 
 type GetContactsInput struct {
-	_ string `url:"/v3/contacts"`
+	_ string `api:"httppath:/v3/contacts"`
+	_ string `api:"httpmethod:GET"`
 
-	CreatedAfter  time.Time          `query:"created_after"`
-	CreatedBefore time.Time          `query:"created_before"`
-	Email         string             `query:"email"`
-	Include       []ContactFieldName `query:"include"` // Comma-separated list of fields to include.
-	IncludeCount  bool               `query:"include_count"`
-	Limit         int                `query:"limit"`
-	Lists         []string           `query:"lists"` // Comma-separated list of list IDs.
-	OptoutBefore  time.Time          `query:"optout_before"`
-	SegmentID     string             `query:"segment_id"`
-	SMSStatus     []string           `query:"sms_status"` // Comma-separated list of SMS statuses.
-	Status        ContactStatus      `query:"status"`
-	Tags          []string           `query:"tags"` // Comma-separated list of tag IDs.
-	UpdatedAfter  time.Time          `query:"updated_after"`
-	UpdatedBefore time.Time          `query:"updated_before"`
+	CreatedAfter  time.Time          `api:"query:created_after"`
+	CreatedBefore time.Time          `api:"query:created_before"`
+	Email         string             `api:"query:email"`
+	Include       []ContactFieldName `api:"query:include"` // Comma-separated list of fields to include.
+	IncludeCount  bool               `api:"query:include_count"`
+	Limit         int                `api:"query:limit"`
+	Lists         []string           `api:"query:lists"` // Comma-separated list of list IDs.
+	OptoutBefore  time.Time          `api:"query:optout_before"`
+	SegmentID     string             `api:"query:segment_id"`
+	SMSStatus     []string           `api:"query:sms_status"` // Comma-separated list of SMS statuses.
+	Status        ContactStatus      `api:"query:status"`
+	Tags          []string           `api:"query:tags"` // Comma-separated list of tag IDs.
+	UpdatedAfter  time.Time          `api:"query:updated_after"`
+	UpdatedBefore time.Time          `api:"query:updated_before"`
 }
 
 type GetContactInput struct {
-	_ string `url:"/v3/contacts/{contact_id}"`
+	_ string `api:"httppath:/v3/contacts/{contact_id}"`
+	_ string `api:"httpmethod:GET"`
 
-	ContactID string `path:"contact_id"`
+	ContactID string `api:"path:contact_id"`
 
-	Include []ContactFieldName `query:"include"` // Comma-separated list of fields to include.
+	Include []ContactFieldName `api:"query:include"` // Comma-separated list of fields to include.
 }
 
 type PutContactInput Contact
