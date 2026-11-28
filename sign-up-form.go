@@ -2,8 +2,8 @@ package constantcontact
 
 import (
 	"context"
-	"fmt"
-	"net/http"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type PostSignUpFormInput struct {
@@ -37,11 +37,6 @@ type PostSignUpFormOutput struct {
 
 func (c *Client) PostSignUpForm(ctx context.Context, input PostSignUpFormInput) (PostSignUpFormOutput, error) {
 	var output PostSignUpFormOutput
-
-	err := c.restClient.Do(ctx, http.MethodPost, "/v3/contacts/sign_up_form", input, &output)
-	if err != nil {
-		return output, fmt.Errorf("failed to sign up form: %w", err)
-	}
-
-	return output, nil
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
+	return output, err
 }

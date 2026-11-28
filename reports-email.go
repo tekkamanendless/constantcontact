@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetEmailSendsReportInput struct {
@@ -36,15 +36,9 @@ type GetEmailSendsReportOutputTrackingActivity struct {
 
 func (c *Client) GetEmailSendsReport(ctx context.Context, input GetEmailSendsReportInput) (GetEmailSendsReportOutput, error) {
 	var output GetEmailSendsReportOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-
-	err := c.restClient.Do(ctx, http.MethodGet, "/v3/reports/email_reports/"+url.PathEscape(input.CampaignActivityID)+"/tracking/sends?"+queryParams.Encode(), nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
-		return output, err
+		return output, fmt.Errorf("failed to get email sends report: %w", err)
 	}
 
 	// Handle pagination.
@@ -98,15 +92,9 @@ type GetEmailOptoutsReportOutputTrackingActivity struct {
 
 func (c *Client) GetEmailOptoutsReport(ctx context.Context, input GetEmailOptoutsReportInput) (GetEmailOptoutsReportOutput, error) {
 	var output GetEmailOptoutsReportOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-
-	err := c.restClient.Do(ctx, http.MethodGet, "/v3/reports/email_reports/"+url.PathEscape(input.CampaignActivityID)+"/tracking/optouts?"+queryParams.Encode(), nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
-		return output, err
+		return output, fmt.Errorf("failed to get email optouts report: %w", err)
 	}
 
 	// Handle pagination.

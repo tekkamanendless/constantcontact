@@ -3,9 +3,8 @@ package constantcontact
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetListsInput struct {
@@ -41,33 +40,7 @@ type GetListsOutputList struct {
 
 func (c *Client) GetLists(ctx context.Context, input GetListsInput) (GetListsOutput, error) {
 	var output GetListsOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-	if input.IncludeCount {
-		queryParams.Add("include_count", "true")
-	}
-	if input.IncludeMembershipCount {
-		queryParams.Add("include_membership_count", "true")
-	}
-	if input.Name != "" {
-		queryParams.Add("name", input.Name)
-	}
-	if input.Status != "" {
-		queryParams.Add("status", input.Status)
-	}
-	if input.ChannelType != "" {
-		queryParams.Add("channel_type", input.ChannelType)
-	}
-	if input.IncludeSMSMembershipCount {
-		queryParams.Add("include_sms_membership_count", "true")
-	}
-
-	targetURL := "/v3/contact_lists?" + queryParams.Encode()
-
-	err := c.restClient.Do(ctx, http.MethodGet, targetURL, nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
 		return output, fmt.Errorf("failed to get lists: %w", err)
 	}
