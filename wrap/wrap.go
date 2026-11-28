@@ -195,29 +195,13 @@ func parseRequestInput(input any) (RequestInput, error) {
 			requestInput.Headers.Set("Content-Type", "application/json")
 		}
 
-		bodyStruct := map[string]any{}
+		// Build a struct with the fields from the "json" tagged fields.
+		bodyStructType := reflect.StructOf(tagFieldsMap["json"])
+		bodyStructValue := reflect.New(bodyStructType).Elem()
 		for _, structField := range tagFieldsMap["json"] {
-			fieldValue := inputValue.FieldByName(structField.Name)
-
-			tag := structField.Tag.Get("json")
-			tagParts := strings.SplitN(tag, ",", 2)
-
-			tagName := strings.TrimSpace(tagParts[0])
-			var tagValue string
-			if len(tagParts) > 1 {
-				tagValue = tagParts[1]
-			}
-			if len(tagValue) > 0 {
-				return requestInput, fmt.Errorf("unsupported json tag extras: %s", tagValue)
-			}
-
-			if tagName == "-" {
-				continue
-			}
-
-			bodyStruct[tagName] = fieldValue.Interface()
+			bodyStructValue.FieldByName(structField.Name).Set(inputValue.FieldByName(structField.Name))
 		}
-		jsonBody, err := json.Marshal(bodyStruct)
+		jsonBody, err := json.Marshal(bodyStructValue.Interface())
 		if err != nil {
 			return requestInput, fmt.Errorf("failed to marshal body: %w", err)
 		}

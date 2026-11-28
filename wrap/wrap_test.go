@@ -21,7 +21,7 @@ func TestParseRequestInput(t *testing.T) {
 	})
 	t.Run("Method", func(t *testing.T) {
 		input := struct {
-			Method string `api:"httpmethod:GET"`
+			_ string `api:"httpmethod:GET"`
 		}{}
 		requestInput, err := parseRequestInput(input)
 		require.NoError(t, err)
@@ -33,7 +33,7 @@ func TestParseRequestInput(t *testing.T) {
 	})
 	t.Run("Path", func(t *testing.T) {
 		input := struct {
-			Path string `api:"httppath:/v1/contacts"`
+			_ string `api:"httppath:/v1/contacts"`
 		}{}
 		requestInput, err := parseRequestInput(input)
 		require.NoError(t, err)
@@ -180,5 +180,39 @@ func TestParseRequestInput(t *testing.T) {
 				}, requestInput)
 			})
 		})
+	})
+	t.Run("Full", func(t *testing.T) {
+		input := struct {
+			_             string `api:"httpmethod:POST"`
+			_             string `api:"httppath:/v1/contacts"`
+			Limit         int    `api:"query:limit"`
+			Name          string `api:"query:name"`
+			Authorization string `api:"header:Authorization"`
+			ContentType   string `api:"header:Content-Type"`
+			FirstName     string `json:"first_name"`
+			LastName      string `json:"last_name"`
+		}{
+			Limit:         10,
+			Name:          "John",
+			Authorization: "Bearer 1234567890",
+			ContentType:   "application/json",
+			FirstName:     "John",
+			LastName:      "Doe",
+		}
+		requestInput, err := parseRequestInput(input)
+		require.NoError(t, err)
+		require.Equal(t, RequestInput{
+			Method: http.MethodPost,
+			Path:   "/v1/contacts",
+			QueryParams: url.Values{
+				"limit": {"10"},
+				"name":  {"John"},
+			},
+			Headers: http.Header{
+				"Authorization": {"Bearer 1234567890"},
+				"Content-Type":  {"application/json"},
+			},
+			Body: []byte(`{"first_name":"John","last_name":"Doe"}`),
+		}, requestInput)
 	})
 }
