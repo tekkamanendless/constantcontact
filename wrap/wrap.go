@@ -257,7 +257,7 @@ func parseRequestInput(input any) (RequestInput, error) {
 		requestInput.Method = http.MethodGet
 	}
 	for name, value := range pathParamsMap {
-		requestInput.Path = strings.ReplaceAll(requestInput.Path, "{"+name+"}", value)
+		requestInput.Path = strings.ReplaceAll(requestInput.Path, "{"+name+"}", url.PathEscape(value))
 	}
 
 	return requestInput, nil
