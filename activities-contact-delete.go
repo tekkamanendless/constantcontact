@@ -2,7 +2,8 @@ package constantcontact
 
 import (
 	"context"
-	"net/http"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type ActivitiesContactDeleteInput struct {
@@ -33,11 +34,6 @@ type ActivitiesContactDeleteOutput struct {
 
 func (c *Client) ActivitiesContactDelete(ctx context.Context, input ActivitiesContactDeleteInput) (ActivitiesContactDeleteOutput, error) {
 	var output ActivitiesContactDeleteOutput
-
-	err := c.restClient.Do(ctx, http.MethodPost, "/v3/activities/contact_delete", input, &output)
-	if err != nil {
-		return output, err
-	}
-
-	return output, nil
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
+	return output, err
 }
