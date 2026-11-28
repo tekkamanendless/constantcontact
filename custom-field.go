@@ -3,9 +3,8 @@ package constantcontact
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
+
+	"github.com/tekkamanendless/constantcontact/wrap"
 )
 
 type GetCustomFieldsInput struct {
@@ -33,13 +32,7 @@ type GetCustomFieldsOutputCustomField struct {
 
 func (c *Client) GetCustomFields(ctx context.Context, input GetCustomFieldsInput) (GetCustomFieldsOutput, error) {
 	var output GetCustomFieldsOutput
-
-	queryParams := url.Values{}
-	if input.Limit > 0 {
-		queryParams.Add("limit", strconv.Itoa(input.Limit))
-	}
-
-	err := c.restClient.Do(ctx, http.MethodGet, "/v3/contact_custom_fields?"+queryParams.Encode(), nil, &output)
+	err := wrap.WrapRequest(ctx, c.restClient, input, &output)
 	if err != nil {
 		return output, fmt.Errorf("failed to get custom fields: %w", err)
 	}

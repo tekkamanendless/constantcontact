@@ -66,6 +66,8 @@ func parseRequestInput(input any) (RequestInput, error) {
 	tagFieldsMap := map[string][]reflect.StructField{}
 	var bodyInterface any
 
+	pathParamsMap := map[string]string{}
+
 	// First pass: parse all the "api" tagged fields.
 	relevantStructFields := reflectListAllBlankStructFields(inputValue)
 	relevantStructFields = append(relevantStructFields, reflect.VisibleFields(inputValue.Type())...)
@@ -96,6 +98,18 @@ func parseRequestInput(input any) (RequestInput, error) {
 			requestInput.Method = strings.ToUpper(apiTagValue)
 		case "httppath":
 			requestInput.Path = apiTagValue
+		case "path":
+			pathParameterParts := strings.SplitN(apiTagValue, ",", 2)
+			pathParameterName := strings.TrimSpace(pathParameterParts[0])
+			if len(pathParameterParts) > 1 {
+				_ = pathParameterParts[1] // TODO: any parameters
+			}
+
+			stringValue, err := reflectValueToString(fieldValue)
+			if err != nil {
+				return requestInput, fmt.Errorf("failed to convert value to string: %w", err)
+			}
+			pathParamsMap[pathParameterName] = stringValue
 		case "query":
 			queryParameterParts := strings.SplitN(apiTagValue, ",", 2)
 			queryParameterName := strings.TrimSpace(queryParameterParts[0])
@@ -241,6 +255,9 @@ func parseRequestInput(input any) (RequestInput, error) {
 
 	if requestInput.Method == "" {
 		requestInput.Method = http.MethodGet
+	}
+	for name, value := range pathParamsMap {
+		requestInput.Path = strings.ReplaceAll(requestInput.Path, "{"+name+"}", value)
 	}
 
 	return requestInput, nil

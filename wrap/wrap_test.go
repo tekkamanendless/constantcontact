@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,17 +33,39 @@ func TestParseRequestInput(t *testing.T) {
 		}, requestInput)
 	})
 	t.Run("Path", func(t *testing.T) {
-		input := struct {
-			_ string `api:"httppath:/v1/contacts"`
-		}{}
-		requestInput, err := parseRequestInput(input)
-		require.NoError(t, err)
-		require.Equal(t, RequestInput{
-			Method:      http.MethodGet,
-			Path:        "/v1/contacts",
-			QueryParams: url.Values{},
-			Headers:     http.Header{},
-		}, requestInput)
+		t.Run("Simple", func(t *testing.T) {
+			input := struct {
+				_ string `api:"httppath:/v1/contacts"`
+			}{}
+			requestInput, err := parseRequestInput(input)
+			require.NoError(t, err)
+			require.Equal(t, RequestInput{
+				Method:      http.MethodGet,
+				Path:        "/v1/contacts",
+				QueryParams: url.Values{},
+				Headers:     http.Header{},
+			}, requestInput)
+		})
+		t.Run("Missing param", func(t *testing.T) {
+			input := struct {
+				_ string `api:"httppath:/v1/contacts/{id}"`
+			}{}
+			requestInput, err := parseRequestInput(input)
+			require.NoError(t, err)
+			assert.Equal(t, "/v1/contacts/{id}", requestInput.Path)
+		})
+		t.Run("Proper params", func(t *testing.T) {
+			input := struct {
+				_ string `api:"httppath:/v1/contacts/{id}"`
+
+				ID string `api:"path:id"`
+			}{
+				ID: "123",
+			}
+			requestInput, err := parseRequestInput(input)
+			require.NoError(t, err)
+			assert.Equal(t, "/v1/contacts/123", requestInput.Path)
+		})
 	})
 	t.Run("QueryParams", func(t *testing.T) {
 		input := struct {
